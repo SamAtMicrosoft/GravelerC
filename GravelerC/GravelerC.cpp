@@ -69,25 +69,24 @@ int main()
     char TimeBuffer[26];
     int TimeFormatResult;
 
-
-    //
-    // Log status every 10 seconds.
-    //
-
     ULONG LoggingIntervalMs = 10000;
+
+
+    //
+    // Execution parameters including the total number of simulations and
+    // the size of the batches run by the worker threads.
+    //
+
+    LONG64 TotalIterations = 1000 * 1000 * 1000;
+    BatchSize = 1000;
 
     //
     // Set the starting number of iterations. This is done using an interlocked
     // operation because this memory can be set from multiple threads.
     //
 
-    InterlockedExchange64(&RemainingIterations, 1000000000);
-
-    //
-    // The worker threads check for remaining work every batch size.
-    //
-
-    BatchSize = 1000;
+    InterlockedExchange64(&RemainingIterations, TotalIterations);
+    std::cout << "Running " << TotalIterations << " simulations\n";
 
     //
     // Initialize buffers in order to know if they have been successfully
@@ -110,6 +109,19 @@ int main()
     }
 
     std::cout << "Using " << ProcessorCoreCount << " threads \n";
+
+    CurrentTime = std::time(nullptr);
+    TimeFormatResult = ctime_s(TimeBuffer,
+                               sizeof(TimeBuffer),
+                               &CurrentTime);
+
+    if (TimeFormatResult != 0) {
+        std::cout << "Failed to format date time " << TimeFormatResult << "\n";
+        Error = TimeFormatResult;
+        goto Exit;
+    }
+
+    std::cout << "Starting at time " << TimeBuffer;
 
     //
     // Allocate space to store the thread handles.
@@ -239,6 +251,7 @@ int main()
 
             IterationsToLog = InterlockedExchangeAdd64(&RemainingIterations, 0);
 
+            CurrentTime = std::time(nullptr);
             TimeFormatResult = ctime_s(TimeBuffer, 
                                        sizeof(TimeBuffer), 
                                        &CurrentTime);
